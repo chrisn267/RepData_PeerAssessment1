@@ -55,7 +55,7 @@ The following questions are answered in this analysis section, supported by vari
 
 To answer this question look at the mean and the median steps per day, as well as the distribution of the daily steps over the two month period.  
 
-Firstly create a dataset by grouping by **date** in order to summarise across each day, then calculating the sum of steps across each day.  (Note the use of the piping operator **%>%** which comes with the dplyr package):
+Firstly create a dataset by grouping by **date** in order to summarise across each day, then calculating the sum of steps across each day.  For now we ignore the fact that there are days without any data, these get treated as days with zero steps.   (Note the use of the piping operator **%>%** which comes with the dplyr package):
 ```{r date_grouping}
 daily1 <- data0 %>% 
         group_by(date) %>% 
@@ -69,9 +69,9 @@ The mean and median steps per day can then be calculated from this summary datas
 ```{r summary_orig}
 summary(daily1$steps, na.rm = TRUE)
 ```
-The mean is `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`, the median is `r format(median(daily1$steps, na.rm = TRUE), big.mark = ",")`, this implis the distribution is left skewed.  There are `r sum((daily1$steps) == 0)` days with missing values which are currently recorded as 0 steps on those days.  
+The mean is `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`, the median is `r format(median(daily1$steps, na.rm = TRUE), big.mark = ",")`, this implies the distribution is left skewed.  There are `r sum((daily1$steps) == 0)` days with missing values which are currently recorded as 0 steps on those days.  
 
-To get a better understanding of the distribution plot a histogram using r's base plotting functionality.  Use the **hist** function and then add a formatted x-axis, a count label for each bucket, and a line and label for the mean:
+To get a better understanding of the distribution plot a histogram using r's base plotting functionality.  Use the **hist** function and then add a formatted x-axis, a count label for each bucket, and a line and label for the mean and median:
 ```{r histogram1, fig.align = "center"}
 # plot main histogram
 h1 <- hist(daily1$steps, 
@@ -119,7 +119,7 @@ abline(v = median(daily1$steps, na.rm = TRUE),
      lty = 2, 
      lwd = 2)
 
-# add a label for the mean
+# add a label for the median
 text(x = median(daily1$steps, na.rm = TRUE), 
      y = 10, 
      labels = "median", 
@@ -129,11 +129,9 @@ text(x = median(daily1$steps, na.rm = TRUE),
      pos = 4,         # move to right of line
      offset = 0.5)    # distance from line
 
-# record where the NA zeros impact the plot
+# add a transparent square to show the 0's
 y1zero <- h1$counts[1] - sum((daily1$steps) == 0)
 y1total <- h1$counts[1]
-
-# add a transparent square to show the 0's
 x1 <- c(0, 0, 2500, 2500)
 y1 <- c(y1zero, y1total, y1total, y1zero)
 polygon(x1,y1,col = "lightskyblue")
@@ -258,7 +256,7 @@ filter(interval1, avg.steps == max(avg.steps))
 
 #### 3. How to impute missing values?
 
-As noted previously there are `r sum((daily1$steps) == 0)` days with missing values which were previously ignored.  Looking at the original **data0** datatable shows `r format(sum(is.na(data0$steps)), big.mark = ",")` missing values which is `r paste0(round(mean(is.na(data0$steps)),3) * 100,"%")`  of the original data set.  (On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are `r sum((daily1$steps) == 0)` days with NA values in the **daily1** dataset).
+As noted previously there are `r sum((daily1$steps) == 0)` days with missing values which were previously included as zero.  Looking at the original **data0** datatable shows `r format(sum(is.na(data0$steps)), big.mark = ",")` missing values which is `r paste0(round(mean(is.na(data0$steps)),3) * 100,"%")`  of the original data set.  On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are `r sum((daily1$steps) == 0)` days with 0 (zero) values in the **daily1** dataset.
 
 Now replace these NA's with imputed values.  To impute the missing values use the average steps per interval for any given 5-minute interval (i.e. if there is a data point missing for a 07:00 to 07:05 interval then replace that missing value with the average of all other 07:00 to 07:05 intervals that have NA values).  Create a new datatable called **data1** with an additional column of computed observations called **steps.imp** (Note - keep this distinct from **data0** so that **data0** remains strictly a reflection of the uploaded .csv file):
 
@@ -585,6 +583,8 @@ abline(h = seq(0, 250, by = 50),
 It is possible to see by splitting the data into weekday and weekend that some properties of the activity timeline belong to weekdays and other to weekends.  The weekday profile gives a lot of the shape to the overall profile, especially the morning routine, however the activity during the day appears to be more consistent at between 25 and 50 steps.  The weekend activity shows a later wake-up time, and more activity in the late afternoon and into the evening. 
 
 It appears to be important to view this dataset as two separate profiles in order to get the best explanation for the daily activity.  It would also be important to see how individual days varied from the weekday/weekend average - i.e. are Saturday and Sunday markedly different.
+
+<br> <br> <br>
 
 
 
