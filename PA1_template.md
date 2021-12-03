@@ -106,7 +106,7 @@ h1 <- hist(daily1$steps,
       xaxt = "n",       # remove x-axis to reformat
       las = 1)          # horizontal y-axis tick labels
 
-# add comma separated numbers to xaxis
+# add comma separated numbers to x-axis
 axis(1, 
      at = seq(0, 25000, by = 5000), 
      labels = prettyNum(axTicks(1), 
@@ -222,7 +222,7 @@ tail(interval1, 5)
 ## 5     2355 23:55     1435     1.08
 ```
 
-Use the **interval1** datset to plot a timeline of average daily steps vs 5-minute intervals.  Make this timeline more legible by improving the tick marks and adding horizontal and vertical guidelines:
+Use the **interval1** dataset to plot a timeline of average daily steps vs 5-minute intervals.  Make this timeline more legible by improving the tick marks and adding horizontal and vertical guidelines:
 
 
 ```r
@@ -386,7 +386,7 @@ h2 <- hist(daily1$steps.imp,
       xaxt = "n",       # remove x-axis to reformat
       las = 1)          # horizontal y-axis tick labels
 
-# add comma separated numbers to xaxis
+# add comma separated numbers to x-axis
 axis(1, 
      at = seq(0, 25000, by = 5000), 
      labels = prettyNum(axTicks(1), 
@@ -577,7 +577,7 @@ abline(h = seq(0, 250, by = 50),
 
 It is possible to see by splitting the data into weekday and weekend that some properties of the activity timeline belong to weekdays and other to weekends.  The weekday profile gives a lot of the shape to the overall profile, especially the morning routine, however the activity during the day appears to be more consistent at between 25 and 50 steps.  The weekend activity shows a later wake-up time, and more activity in the late afternoon and into the evening. 
 
-It appears to be important to view this dataset as two separate profiles in order to get the best explanation for the daily activity.  It would also be important to see how individual days varied from teh weekday/weekend average - i.e. are Saturday and Sunday markedly different.
+It appears to be important to view this dataset as two separate profiles in order to get the best explanation for the daily activity.  It would also be important to see how individual days varied from the weekday/weekend average - i.e. are Saturday and Sunday markedly different.
 
 
 
