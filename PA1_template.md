@@ -7,9 +7,7 @@ output:
     keep_md: yes
 ---
 
-```{r setup, include=FALSE}
-knitr::opts_chunk$set(echo = TRUE)
-```
+
 
 # Reproducible Research - Peer Assessment 1
 
@@ -18,14 +16,16 @@ This assignment is part of the Reproducible Research module of the John Hopkins 
 
 #### 0. Loading and preprocessing the data
 To set up the r environment first install the tidyverse package to enable access to tidyr and dplyr for data manipulation:
-```{r packages, message = FALSE}
+
+```r
 # install.packages("tidyverse")
 library(tidyverse)
 ```
 
 The data for this assignment is made available at  *https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip*
 To download the data and read it into a data table use the following code:
-```{r download}
+
+```r
 download.file("https://d396qusza40orc.cloudfront.net/repdata%2Fdata%2Factivity.zip",
               "activity.zip", method = "curl")
 unzip("activity.zip")
@@ -33,11 +33,12 @@ data0 <- read.csv("activity.csv", header = TRUE)
 ```
 
 Now process the **date** variable to ensure it is recorded in Date format:
-```{r initial_processing}
+
+```r
 data0$date <- as.Date(data0$date, format = "%Y-%m-%d")
 ```
 
-The **data0** datatable has `r ncol(data0)` variables and `r format(nrow(data0), big.mark = ",")` observations.  It is used as the basis for the rest of this analysis.
+The **data0** datatable has 3 variables and 17,568 observations.  It is used as the basis for the rest of this analysis.
 <br>
 
 ## Analysis
@@ -56,7 +57,8 @@ The following questions are answered in this analysis section, supported by vari
 To answer this question look at the mean and the median steps per day, as well as the distribution of the daily steps over the two month period.  
 
 Firstly create a dataset by grouping by **date** in order to summarise across each day, then calculating the sum of steps across each day.  (Note the use of the piping operator **%>%** which comes with the dplyr package):
-```{r date_grouping}
+
+```r
 daily1 <- data0 %>% 
         group_by(date) %>% 
         summarise(steps = sum(steps)) %>% 
@@ -65,15 +67,33 @@ daily1 <- data0 %>%
 head(daily1, 5)
 ```
 
+```
+## # A tibble: 5 × 2
+##   date       steps
+##   <date>     <int>
+## 1 2012-10-01    NA
+## 2 2012-10-02   126
+## 3 2012-10-03 11352
+## 4 2012-10-04 12116
+## 5 2012-10-05 13294
+```
+
 
 The mean and median steps per day can then be calculated from this summary dataset using the **summary** function:  
-```{r summary_orig}
+
+```r
 summary(daily1$steps, na.rm = TRUE)
 ```
-The mean is `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`, the median is `r format(median(daily1$steps, na.rm = TRUE), big.mark = ",")` so the distribution is not skewed.  There are `r sum(is.na(daily1$steps))` days with missing values which we ignore for now.  
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max.    NA's 
+##      41    8841   10765   10766   13294   21194       8
+```
+The mean is 10,766.19, the median is 10,765 so the distribution is not skewed.  There are 8 days with missing values which we ignore for now.  
 
 To get a better understanding of the distribution plot a histogram using r's base plotting functionality.  Use the **hist** function and then add a formatted x-axis, a count label for each bucket, and a line and label for the mean:
-```{r histogram1, fig.align = "center"}
+
+```r
 # plot main histogram
 h1 <- hist(daily1$steps, 
       breaks = seq(0,25000,by = 2500), 
@@ -115,7 +135,9 @@ text(x = mean(daily1$steps, na.rm = TRUE),
      offset = 0.5)    # distance from line
 ```
 
-The histogram shows that the data is bell-shaped with a collection of `r sum(daily1$steps < 2500, na.rm = TRUE)` low (but non-zero) days at 0-2500 steps, and `r sum(daily1$steps > 20000, na.rm = TRUE)` high days of over 20,000 steps.  The average (median and mean) steps is around `r format(round(mean(daily1$steps, na.rm = TRUE), -2), big.mark = ",")` per day.  The significant peak at the median/mean could be to do with the common target of achieving 10,000 steps per day on smartphone devices.
+<img src="PA1_template_files/figure-html/histogram1-1.png" style="display: block; margin: auto;" />
+
+The histogram shows that the data is bell-shaped with a collection of 3 low (but non-zero) days at 0-2500 steps, and 2 high days of over 20,000 steps.  The average (median and mean) steps is around 10,800 per day.  The significant peak at the median/mean could be to do with the common target of achieving 10,000 steps per day on smartphone devices.
 
 <br>
 
@@ -123,7 +145,8 @@ The histogram shows that the data is bell-shaped with a collection of `r sum(dai
 
 To answer this question look at the average profile of steps across the day in five minute intervals.  First construct a dataset which is grouped by 5-minute intervals and then summarise by the average steps across the 2 months for each 5-minute interval:
 
-```{r interval_grouping, eval = FALSE}
+
+```r
 interval1 <- data0 %>% 
                 group_by(interval) %>% 
                 summarise(avg.steps = mean(steps, na.rm = TRUE)) %>%
@@ -133,12 +156,33 @@ head(interval1, 5)
 tail(interval1, 5)
 ```
 
-```{r ref.label = "interval_grouping", echo = FALSE}
+
+```
+## # A tibble: 5 × 2
+##   interval avg.steps
+##      <int>     <dbl>
+## 1        0    1.72  
+## 2        5    0.340 
+## 3       10    0.132 
+## 4       15    0.151 
+## 5       20    0.0755
+```
+
+```
+## # A tibble: 5 × 2
+##   interval avg.steps
+##      <int>     <dbl>
+## 1     2335     4.70 
+## 2     2340     3.30 
+## 3     2345     0.642
+## 4     2350     0.226
+## 5     2355     1.08
 ```
 
 Note that the intervals provided are in a format **hmm** which needs to be manipulated in order to plot and label correctly.  Firstly add a timestring in format **HH:MM**, then convert the intervals provided into **mm** (minutes) rather than **hmm** (hoursminutes), finally reorder columns to keep observations on the right:
 
-```{r interval_processing, eval = FALSE}
+
+```r
 # extract interval as a 4 digit timestamp HHMM
 timestr <- str_pad(interval1$interval, 4, pad = 0)
 
@@ -155,12 +199,33 @@ head(interval1, 5)
 tail(interval1, 5)
 ```
 
-```{r ref.label = "interval_processing", echo = FALSE}
+
+```
+## # A tibble: 5 × 4
+##   interval string minutes avg.steps
+##      <int> <chr>    <dbl>     <dbl>
+## 1        0 00:00        0    1.72  
+## 2        5 00:05        5    0.340 
+## 3       10 00:10       10    0.132 
+## 4       15 00:15       15    0.151 
+## 5       20 00:20       20    0.0755
+```
+
+```
+## # A tibble: 5 × 4
+##   interval string minutes avg.steps
+##      <int> <chr>    <dbl>     <dbl>
+## 1     2335 23:35     1415     4.70 
+## 2     2340 23:40     1420     3.30 
+## 3     2345 23:45     1425     0.642
+## 4     2350 23:50     1430     0.226
+## 5     2355 23:55     1435     1.08
 ```
 
 Use the **interval1** datset to plot a timeline of average daily steps vs 5-minute intervals.  Make this timeline more legible by improving the tick marks and adding horizontal and vertical guidelines:
 
-```{r timeline1, fig.align = "center"}
+
+```r
 # plot the initial timeline using minutes and average steps.
 t1 <- plot(x = c(interval1$minutes,1440),
      y = c(interval1$avg.steps, NA),
@@ -200,8 +265,9 @@ abline(h = seq(0, 250, by = 50),
      col = "grey", 
      lty = 3, 
      lwd = 1)
-
 ```
+
+<img src="PA1_template_files/figure-html/timeline1-1.png" style="display: block; margin: auto;" />
 
 
 The timeline shows activity as follows 
@@ -218,21 +284,30 @@ The timeline shows activity as follows
 | 10pm - 12am | ~ 5 steps/int | Very Low | Only very occasional activity - maybe one or two late nights |
 | 12am - 5.30am | ~ 0 steps/int | None | Asleep |
 
-Now filter the **interval1** datatable to see that the maximum steps per interval is `r round(max(interval1$avg.steps),0)` occurring between `r interval1$string[match(max(interval1$avg.steps), interval1$avg.steps)]` and `r interval1$string[match(max(interval1$avg.steps), interval1$avg.steps) +1 ]`:
+Now filter the **interval1** datatable to see that the maximum steps per interval is 206 occurring between 08:35 and 08:40:
 
-```{r max_interval}
+
+```r
 filter(interval1, avg.steps == max(avg.steps))
+```
+
+```
+## # A tibble: 1 × 4
+##   interval string minutes avg.steps
+##      <int> <chr>    <dbl>     <dbl>
+## 1      835 08:35      515      206.
 ```
 
 <br>
 
 #### 3. How to impute missing values?
 
-As noted previously there are `r sum(is.na(daily1$steps))` days with missing values which were previously ignored.  Looking at the original **data0** datatable shows `r format(sum(is.na(data0$steps)), big.mark = ",")` missing values which is `r paste0(round(mean(is.na(data0$steps)),3) * 100,"%")`  of the original data set.  (On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are 8 days with NA values in the **daily1** dataset).
+As noted previously there are 8 days with missing values which were previously ignored.  Looking at the original **data0** datatable shows 2,304 missing values which is 13.1%  of the original data set.  (On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are 8 days with NA values in the **daily1** dataset).
 
 Now replace these NA's with imputed values.  To impute the missing values use the average steps per interval for any given 5-minute interval (i.e. if there is a data point missing for a 07:00 to 07:05 interval then replace that missing value with the average of all other 07:00 to 07:05 intervals that have NA values).  Create a new datatable called **data1** with an additional column of computed observations called **steps.imp** (Note - keep this distinct from **data0** so that **data0** remains strictly a reflection of the uploaded .csv file):
 
-```{r impute_values1}
+
+```r
 data1 <- data0 %>% 
             group_by(interval) %>% 
             mutate(steps.imp = ifelse(is.na(steps), mean(steps, na.rm = TRUE), steps)) %>% 
@@ -242,9 +317,21 @@ data1 <- data0 %>%
 head(data1, 5)
 ```
 
+```
+## # A tibble: 5 × 4
+##   date       interval steps steps.imp
+##   <date>        <int> <int>     <dbl>
+## 1 2012-10-01        0    NA    1.72  
+## 2 2012-10-01        5    NA    0.340 
+## 3 2012-10-01       10    NA    0.132 
+## 4 2012-10-01       15    NA    0.151 
+## 5 2012-10-01       20    NA    0.0755
+```
+
 Now add a **steps.imp** column to the **daily1** datatable to reflect the day totals if the imputed steps observation is used to calculate daily totals:
 
-```{r impute_values2}
+
+```r
 daily1 <- data1 %>% 
             group_by(date) %>% 
             summarise(steps = sum(steps), steps.imp = sum(steps.imp)) %>% 
@@ -253,17 +340,40 @@ daily1 <- data1 %>%
 head(daily1, 10)
 ```
 
-It is easy to see that days without any data e.g. 2012-10-02 and 2012-10-08 have their totals replaced by the mean of `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`.  This is because the missing data values occur as whole days of data, not for individual intervals, therefore imputing values for specific intervals has the same overall effect of imputing daily totals.  
+```
+## # A tibble: 10 × 3
+##    date       steps steps.imp
+##    <date>     <int>     <dbl>
+##  1 2012-10-01    NA    10766.
+##  2 2012-10-02   126      126 
+##  3 2012-10-03 11352    11352 
+##  4 2012-10-04 12116    12116 
+##  5 2012-10-05 13294    13294 
+##  6 2012-10-06 15420    15420 
+##  7 2012-10-07 11015    11015 
+##  8 2012-10-08    NA    10766.
+##  9 2012-10-09 12811    12811 
+## 10 2012-10-10  9900     9900
+```
 
-By imputing the data in this way there is no change made to the overall mean (`r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`), and the median becomes the same as the mean (i.e. `r format(median(daily1$steps.imp), big.mark = ",")`): 
+It is easy to see that days without any data e.g. 2012-10-02 and 2012-10-08 have their totals replaced by the mean of 10,766.19.  This is because the missing data values occur as whole days of data, not for individual intervals, therefore imputing values for specific intervals has the same overall effect of imputing daily totals.  
 
-```{r summary_imp}
+By imputing the data in this way there is no change made to the overall mean (10,766.19), and the median becomes the same as the mean (i.e. 10,766.19): 
+
+
+```r
 summary(daily1$steps.imp)
+```
+
+```
+##    Min. 1st Qu.  Median    Mean 3rd Qu.    Max. 
+##      41    9819   10766   10766   12811   21194
 ```
 
 Now look at the histogram to see whether there is any impact on the daily totals profile: 
 
-```{r histogram2, fig.align = "center"}
+
+```r
 # plot second histogram
 h2 <- hist(daily1$steps.imp, 
       breaks = seq(0,25000,by = 2500), 
@@ -305,6 +415,8 @@ text(x = mean(daily1$steps.imp, na.rm = TRUE),
      offset = 0.5)    # distance from line
 ```
 
+<img src="PA1_template_files/figure-html/histogram2-1.png" style="display: block; margin: auto;" />
+
 
 The distribution profile of daily totals now has a more exaggerated peak, this is because days which have no data have been replaced with the daily average.  Care should therefore be taken when using the imputed dataset as it may distort findings by including imputed data.
 
@@ -314,14 +426,16 @@ The distribution profile of daily totals now has a more exaggerated peak, this i
 
 To understand the difference between activity patterns across weekdays and weekends it is necessary to split the dataset accordingly.  This is done by adding a weekend/weekday factor to the **data1** datatable:
 
-```{r weekend_factor}
+
+```r
 data1 <- data1 %>% 
     mutate(daytype = ifelse(weekdays(date) == "Saturday" | weekdays(date) == "Sunday", "weekend", "weekday"))
 data1$daytype <- as.factor(data1$daytype)
 ```
 
 This factor can now be used to split the data into weekday and weekend data. 
-```{r weekend_split, message = FALSE}
+
+```r
 # create a second interval table which has average steps split by weekend and weekday 
 interval2 <- data1 %>% 
     group_by(interval, daytype) %>% 
@@ -335,10 +449,25 @@ interval1 <- cbind(interval1, weekday = interval2$weekday, weekend = interval2$w
 head(interval1, 10)
 ```
 
+```
+##    interval string minutes avg.steps   weekday   weekend
+## 1         0  00:00       0 1.7169811 2.3333333 0.0000000
+## 2         5  00:05       5 0.3396226 0.4615385 0.0000000
+## 3        10  00:10      10 0.1320755 0.1794872 0.0000000
+## 4        15  00:15      15 0.1509434 0.2051282 0.0000000
+## 5        20  00:20      20 0.0754717 0.1025641 0.0000000
+## 6        25  00:25      25 2.0943396 1.5128205 3.7142857
+## 7        30  00:30      30 0.5283019 0.7179487 0.0000000
+## 8        35  00:35      35 0.8679245 1.1794872 0.0000000
+## 9        40  00:40      40 0.0000000 0.0000000 0.0000000
+## 10       45  00:45      45 1.4716981 1.8461538 0.4285714
+```
+
 To understand the difference in activity patterns the timeline plot of daily activity above is repeated but this time as two plots, one reflecting weekdays and one reflecting weekends.
 
 First set up the plotting area to hold two plots and adjust margins accordingly, then plot two timelines in the same format as previously:
-```{r timeline2, fig.align = "center"}
+
+```r
 # set up the margins for a double plot (vertically)
 par(mfrow = c(2,1), mar = c(1, 4, 1, 1), oma = c(3, 1, 3, 1), mgp = c(2.5, 0.5, 0))
 
@@ -443,6 +572,8 @@ abline(h = seq(0, 250, by = 50),
      lty = 3, 
      lwd = 1)
 ```
+
+<img src="PA1_template_files/figure-html/timeline2-1.png" style="display: block; margin: auto;" />
 
 It is possible to see by splitting the data into weekday and weekend that some properties of the activity timeline belong to weekdays and other to weekends.  The weekday profile gives a lot of the shape to the overall profile, especially the morning routine, however the activity during the day appears to be more consistent at between 25 and 50 steps.  The weekend activity shows a later wake-up time, and more activity in the late afternoon and into the evening. 
 
