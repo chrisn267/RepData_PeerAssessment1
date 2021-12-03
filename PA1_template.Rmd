@@ -59,18 +59,17 @@ Firstly create a dataset by grouping by **date** in order to summarise across ea
 ```{r date_grouping}
 daily1 <- data0 %>% 
         group_by(date) %>% 
-        summarise(steps = sum(steps)) %>% 
+        summarise(steps = sum(steps, na.rm = TRUE)) %>% 
         ungroup()
 
 head(daily1, 5)
 ```
 
-
 The mean and median steps per day can then be calculated from this summary dataset using the **summary** function:  
 ```{r summary_orig}
 summary(daily1$steps, na.rm = TRUE)
 ```
-The mean is `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`, the median is `r format(median(daily1$steps, na.rm = TRUE), big.mark = ",")` so the distribution is not skewed.  There are `r sum(is.na(daily1$steps))` days with missing values which we ignore for now.  
+The mean is `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`, the median is `r format(median(daily1$steps, na.rm = TRUE), big.mark = ",")`, this implis the distribution is left skewed.  There are `r sum((daily1$steps) == 0)` days with missing values which are currently recorded as 0 steps on those days.  
 
 To get a better understanding of the distribution plot a histogram using r's base plotting functionality.  Use the **hist** function and then add a formatted x-axis, a count label for each bucket, and a line and label for the mean:
 ```{r histogram1, fig.align = "center"}
@@ -79,7 +78,7 @@ h1 <- hist(daily1$steps,
       breaks = seq(0,25000,by = 2500), 
       ylim = c(0,20),
       col = "steelblue3",
-      main = "Histogram of daily steps recorded across Oct & Nov 2012 \n (8 days missing data is ignored)",
+      main = "Histogram of daily steps recorded across Oct & Nov 2012 \n (8 days missing data treated as 0)",
       cex.main = 1.1,
       xlab = "daily steps", 
       ylab = "frequency",
@@ -100,7 +99,7 @@ text(x = h1$mids,
 
 # add a line to show the mean
 abline(v = mean(daily1$steps, na.rm = TRUE), 
-     col = "orange2", 
+     col = "orange3", 
      lty = 2, 
      lwd = 2)
 
@@ -108,14 +107,45 @@ abline(v = mean(daily1$steps, na.rm = TRUE),
 text(x = mean(daily1$steps, na.rm = TRUE), 
      y = 10, 
      labels = "mean", 
-     col = "orange2", 
+     col = "orange3", 
      srt = 90,        # rotate 90 degrees
      cex = 1,         # resize 
      pos = 4,         # move to right of line
      offset = 0.5)    # distance from line
+
+# add a line to show the median
+abline(v = median(daily1$steps, na.rm = TRUE), 
+     col = "red2", 
+     lty = 2, 
+     lwd = 2)
+
+# add a label for the mean
+text(x = median(daily1$steps, na.rm = TRUE), 
+     y = 10, 
+     labels = "median", 
+     col = "red2", 
+     srt = 90,        # rotate 90 degrees
+     cex = 1,         # resize 
+     pos = 4,         # move to right of line
+     offset = 0.5)    # distance from line
+
+# record where the NA zeros impact the plot
+y1zero <- h1$counts[1] - sum((daily1$steps) == 0)
+y1total <- h1$counts[1]
+
+# add a transparent square to show the 0's
+x1 <- c(0, 0, 2500, 2500)
+y1 <- c(y1zero, y1total, y1total, y1zero)
+polygon(x1,y1,col = "lightskyblue")
+
+# add a another label show the 0's
+text(x = h1$mids[1], 
+     y = y1zero,
+     labels = y1zero, 
+     adj = c(0.5, -0.5)) 
 ```
 
-The histogram shows that the data is bell-shaped with a collection of `r sum(daily1$steps < 2500, na.rm = TRUE)` low (but non-zero) days at 0-2500 steps, and `r sum(daily1$steps > 20000, na.rm = TRUE)` high days of over 20,000 steps.  The average (median and mean) steps is around `r format(round(mean(daily1$steps, na.rm = TRUE), -2), big.mark = ",")` per day.  The significant peak at the median/mean could be to do with the common target of achieving 10,000 steps per day on smartphone devices.
+The histogram shows that the data is actually bell-shaped with a collection of `r sum(daily1$steps > 0 & daily1$steps < 2500, na.rm = TRUE)` low (but non-zero) days at 0-2500 steps, and `r sum(daily1$steps > 20000, na.rm = TRUE)` high days of over 20,000 steps.  The mean is less than the median, but this is being impacted by the `r sum(daily1$steps == 0, na.rm = TRUE)` zero values from missing data.  The significant peak at the median/mean could be to do with the common target of achieving 10,000 steps per day on smartphone devices.
 
 <br>
 
@@ -228,7 +258,7 @@ filter(interval1, avg.steps == max(avg.steps))
 
 #### 3. How to impute missing values?
 
-As noted previously there are `r sum(is.na(daily1$steps))` days with missing values which were previously ignored.  Looking at the original **data0** datatable shows `r format(sum(is.na(data0$steps)), big.mark = ",")` missing values which is `r paste0(round(mean(is.na(data0$steps)),3) * 100,"%")`  of the original data set.  (On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are 8 days with NA values in the **daily1** dataset).
+As noted previously there are `r sum((daily1$steps) == 0)` days with missing values which were previously ignored.  Looking at the original **data0** datatable shows `r format(sum(is.na(data0$steps)), big.mark = ",")` missing values which is `r paste0(round(mean(is.na(data0$steps)),3) * 100,"%")`  of the original data set.  (On review this appears to be 8 full days of data missing since there are 8 x 12 x 24 = 2,304 missing points, and there are `r sum((daily1$steps) == 0)` days with NA values in the **daily1** dataset).
 
 Now replace these NA's with imputed values.  To impute the missing values use the average steps per interval for any given 5-minute interval (i.e. if there is a data point missing for a 07:00 to 07:05 interval then replace that missing value with the average of all other 07:00 to 07:05 intervals that have NA values).  Create a new datatable called **data1** with an additional column of computed observations called **steps.imp** (Note - keep this distinct from **data0** so that **data0** remains strictly a reflection of the uploaded .csv file):
 
@@ -247,21 +277,21 @@ Now add a **steps.imp** column to the **daily1** datatable to reflect the day to
 ```{r impute_values2}
 daily1 <- data1 %>% 
             group_by(date) %>% 
-            summarise(steps = sum(steps), steps.imp = sum(steps.imp)) %>% 
+            summarise(steps = sum(steps, na.rm = TRUE), steps.imp = sum(steps.imp)) %>% 
             ungroup()
 
 head(daily1, 10)
 ```
 
-It is easy to see that days without any data e.g. 2012-10-02 and 2012-10-08 have their totals replaced by the mean of `r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`.  This is because the missing data values occur as whole days of data, not for individual intervals, therefore imputing values for specific intervals has the same overall effect of imputing daily totals.  
+It is easy to see that days without any data e.g. 2012-10-02 and 2012-10-08 have their totals replaced by the new mean of `r format(round(mean(daily1$steps[daily1$steps != 0]),2), big.mark = ",")`.  This mean has changed because it is now being taken across the non-NA values only.
 
-By imputing the data in this way there is no change made to the overall mean (`r format(round(mean(daily1$steps, na.rm = TRUE),2), big.mark = ",")`), and the median becomes the same as the mean (i.e. `r format(median(daily1$steps.imp), big.mark = ",")`): 
+The median becomes the same as the mean because the `r sum((daily1$steps) == 0)` missing values are now recorded as the mean.   
 
 ```{r summary_imp}
 summary(daily1$steps.imp)
 ```
 
-Now look at the histogram to see whether there is any impact on the daily totals profile: 
+This can be more easily seen by looking at looking at the histogram with the imputed values included: 
 
 ```{r histogram2, fig.align = "center"}
 # plot second histogram
@@ -288,17 +318,48 @@ text(x = h2$mids,
      labels = h2$counts, 
      adj = c(0.5, -0.5)) 
 
+# record where the NA zeros impact the plot
+y5zero <- h2$counts[5] - sum((daily1$steps) == 0)
+y5total <- h2$counts[5]
+
+# add a transparent square to show the 0's
+x2 <- c(10000, 10000, 12500, 12500)
+y2 <- c(y5zero, y5total, y5total, y5zero)
+polygon(x2,y2,col = "palegreen2")
+
+# add a another label show the 0's
+text(x = h2$mids[5], 
+     y = y5zero,
+     labels = y5zero, 
+     adj = c(0.5, -0.5)) 
+
 # add a line to show the mean
 abline(v = mean(daily1$steps.imp, na.rm = TRUE), 
      col = "orange2", 
-     lty = 2, 
+     lty = 1, 
      lwd = 2)
 
 # add a label for the mean
 text(x = mean(daily1$steps.imp, na.rm = TRUE), 
-     y = 15, 
+     y = 2, 
      labels = "mean", 
      col = "orange2", 
+     srt = 90,        # rotate 90 degrees
+     cex = 1,         # resize 
+     pos = 4,         # move to right of line
+     offset = 0.5)    # distance from line
+
+# add a line to show the median
+abline(v = median(daily1$steps.imp, na.rm = TRUE), 
+     col = "red", 
+     lty = 2, 
+     lwd = 2)
+
+# add a label for the median
+text(x = median(daily1$steps.imp, na.rm = TRUE), 
+     y = 8, 
+     labels = "median", 
+     col = "red", 
      srt = 90,        # rotate 90 degrees
      cex = 1,         # resize 
      pos = 4,         # move to right of line
@@ -307,6 +368,83 @@ text(x = mean(daily1$steps.imp, na.rm = TRUE),
 
 
 The distribution profile of daily totals now has a more exaggerated peak, this is because days which have no data have been replaced with the daily average.  Care should therefore be taken when using the imputed dataset as it may distort findings by including imputed data.
+
+Given the missing data points occur for specific days, the best way of viewing the distribution of total steps across the two months is to ignore the missing values all together.  This is done by leaving the values as NA in the dataset:
+
+```{r impute_values3}
+daily2 <- data0 %>% 
+            group_by(date) %>% 
+            summarise(steps = sum(steps)) %>% 
+            ungroup()
+daily1 <- cbind(daily1, steps.na = daily2$steps)
+head(daily1, 10)
+```
+
+Then redraw the histogram noting that the missing days have been excluded from the plot:
+
+```{r histogram3, fig.align = "center"}
+# plot main histogram
+h3 <- hist(daily1$steps.na, 
+      breaks = seq(0,25000,by = 2500), 
+      ylim = c(0,20),
+      col = "honeydew3",
+      main = "Histogram of daily steps recorded across Oct & Nov 2012 \n (8 days missing data ignored)",
+      cex.main = 1.1,
+      xlab = "daily steps", 
+      ylab = "frequency",
+      xaxt = "n",       # remove x-axis to reformat
+      las = 1)          # horizontal y-axis tick labels
+
+# add comma separated numbers to x-axis
+axis(1, 
+     at = seq(0, 25000, by = 5000), 
+     labels = prettyNum(axTicks(1), 
+     big.mark = ","))
+
+# add count label to each bucket
+text(x = h3$mids, 
+     y = h3$counts, 
+     labels = h3$counts, 
+     adj = c(0.5, -0.5)) 
+
+# add a line to show the mean
+abline(v = mean(daily1$steps.na, na.rm = TRUE), 
+     col = "orange3", 
+     lty = 1, 
+     lwd = 2)
+
+# add a label for the mean
+text(x = mean(daily1$steps.na, na.rm = TRUE), 
+     y = 2, 
+     labels = "mean", 
+     col = "orange3", 
+     srt = 90,        # rotate 90 degrees
+     cex = 1,         # resize 
+     pos = 4,         # move to right of line
+     offset = 0.5)    # distance from line
+
+# add a line to show the median
+abline(v = median(daily1$steps.na, na.rm = TRUE), 
+     col = "red2", 
+     lty = 2, 
+     lwd = 2)
+
+# add a label for the mean
+text(x = median(daily1$steps.na, na.rm = TRUE), 
+     y = 8, 
+     labels = "median", 
+     col = "red2", 
+     srt = 90,        # rotate 90 degrees
+     cex = 1,         # resize 
+     pos = 4,         # move to right of line
+     offset = 0.5)    # distance from line
+```
+
+This shows a truer picture of the distribution.  Looking at the **summary** of the dataset including NA's shows that the median and mean are close which implies a centralised bell-distribution, noting that there are 8 days missing data:
+
+```{r summary_na}
+summary(daily1$steps.na)
+```
 
 <br>
 
